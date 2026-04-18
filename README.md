@@ -276,6 +276,96 @@ No console, os logs são coloridos por nível. Formato:
 
 ---
 
+## Testando o Fallback
+
+O fallback é o coração da resiliência do SmartCEP. Existem três formas de testá-lo, da mais simples à mais realista.
+
+### Opção 1 — Variável de ambiente `FORCE_PRIMARY_FAIL` ✅ Recomendado
+
+É a forma mais rápida e segura. No `.env`, altere:
+
+```env
+FORCE_PRIMARY_FAIL=true
+```
+
+Reinicie o servidor (`npm run dev`) e faça qualquer busca. O service vai **pular a BrasilAPI completamente** e ir direto ao ViaCEP. A resposta confirmará isso no campo `source`:
+
+```json
+{
+  "success": true,
+  "cep": "01310100",
+  "source": "ViaCEP (fallback)",
+  "latency": 287
+}
+```
+
+No frontend, o badge amarelo "VIACEP (FALLBACK)" aparecerá no lugar do azul "BRASILAPI". Volte para `FORCE_PRIMARY_FAIL=false` quando terminar.
+
+> **Por que isso funciona?** O `cep.service.js` verifica essa flag antes de chamar o provider primário. Se for `true`, ignora o bloco inteiro da BrasilAPI e cai direto no fallback — mesma lógica que aconteceria numa falha real.
+
+---
+
+### Opção 2 — Limpar o cache antes de testar
+
+Importante: se um CEP já foi buscado antes, ele está cacheado no banco e **nenhum provider será chamado**. Para garantir que o fallback seja exercitado, limpe o cache do CEP que vai testar:
+
+```sql
+-- Conecte no banco e execute:
+DELETE FROM cep_cache WHERE cep = '01310100';
+```
+
+Ou limpe tudo de uma vez em ambiente de desenvolvimento:
+
+```sql
+TRUNCATE TABLE cep_cache;
+```
+
+Após limpar, a próxima busca vai percorrer a cadeia completa (Cache MISS → BrasilAPI ou ViaCEP).
+
+---
+
+### Opção 3 — Simular falha de rede real (timeout)
+
+Para testar o comportamento quando a BrasilAPI fica lenta ou inacessível de verdade, edite temporariamente o `brasilapi.provider.js` trocando a URL por um host inválido:
+
+```js
+// src/providers/brasilapi.provider.js
+
+// Antes (produção):
+const response = await axios.get(`https://brasilapi.com.br/api/cep/v2/${cep}`, {
+  timeout: 5000
+});
+
+// Depois (simulando queda — temporário, só para teste):
+const response = await axios.get(`https://brasilapi-OFFLINE.com/api/cep/v2/${cep}`, {
+  timeout: 5000
+});
+```
+
+O Axios vai aguardar os 5 segundos de timeout, falhar, e o service vai acionar o ViaCEP automaticamente. Você verá nos logs:
+
+```
+[WARN]  ⚠️ [BrasilAPI] Falhou: timeout of 5000ms exceeded
+[INFO]  ✅ [ViaCEP - FALLBACK] Sucesso em 5318ms
+```
+
+A latência total vai refletir o tempo gasto esperando a BrasilAPI falhar antes do ViaCEP responder. **Lembre de reverter a URL após o teste.**
+
+---
+
+### Como confirmar o resultado em cada cenário
+
+| O que você vê | O que aconteceu |
+|---|---|
+| Badge verde **CACHE** / `"source": "cache"` | CEP já estava no banco, nenhuma API foi chamada |
+| Badge azul **BRASILAPI** / `"source": "BrasilAPI"` | BrasilAPI respondeu normalmente |
+| Badge amarelo **VIACEP (FALLBACK)** / `"source": "ViaCEP (fallback)"` | BrasilAPI falhou, ViaCEP assumiu |
+| Mensagem de erro na tela | Ambas as APIs falharam |
+
+Os logs no terminal sempre detalham qual provider respondeu e a latência de cada etapa, independente do resultado.
+
+---
+
 ## Possíveis Evoluções
 
 - Expiração de cache por TTL (ex: invalidar entradas com mais de 30 dias)
