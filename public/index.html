@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartCEP</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: #f5f5f7;
+      min-height: 100vh;
+      color: #1d1d1f;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 48px 20px 64px;
+    }
+
+    /* Header */
+    .app-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .app-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #0071e3, #0051a2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      box-shadow: 0 4px 24px rgba(0,113,227,0.35);
+    }
+
+    .app-icon svg { width: 36px; height: 36px; fill: white; }
+
+    .app-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #1d1d1f;
+    }
+
+    .app-subtitle {
+      font-size: 15px;
+      color: #86868b;
+      margin-top: 6px;
+      font-weight: 400;
+    }
+
+    /* Cards */
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    /* Search */
+    .search-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .cep-input {
+      flex: 1;
+      height: 50px;
+      border: 1.5px solid #d2d2d7;
+      border-radius: 14px;
+      padding: 0 16px;
+      font-size: 17px;
+      font-family: 'DM Mono', monospace;
+      color: #1d1d1f;
+      background: #f5f5f7;
+      outline: none;
+      transition: all 0.2s ease;
+      letter-spacing: 1px;
+    }
+
+    .cep-input::placeholder { color: #aeaeb2; font-family: 'DM Sans', sans-serif; letter-spacing: 0; }
+
+    .cep-input:focus {
+      border-color: #0071e3;
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(0,113,227,0.12);
+    }
+
+    .btn-search {
+      height: 50px;
+      padding: 0 24px;
+      background: #0071e3;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'DM Sans', inherit;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-search:hover { background: #0077ed; transform: scale(1.02); }
+    .btn-search:active { transform: scale(0.97); background: #0068d0; }
+
+    /* Result */
+    .result-area {
+      display: none;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #f0f0f3;
+    }
+
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .badge-cache  { background: #e8faf0; color: #1d8348; }
+    .badge-brasil { background: #e8f4fd; color: #1565c0; }
+    .badge-viacep { background: #fff8e1; color: #b07d0e; }
+
+    .result-cep {
+      font-family: 'DM Mono', monospace;
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: #1d1d1f;
+      margin-bottom: 4px;
+    }
+
+    .result-street {
+      font-size: 17px;
+      color: #1d1d1f;
+      margin-bottom: 2px;
+    }
+
+    .result-city {
+      font-size: 15px;
+      color: #86868b;
+      margin-bottom: 4px;
+    }
+
+    .result-complement {
+      font-size: 13px;
+      color: #aeaeb2;
+    }
+
+    .result-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .latency-label { font-size: 12px; color: #c7c7cc; font-family: 'DM Mono', monospace; }
+
+    .btn-save {
+      height: 40px;
+      padding: 0 20px;
+      background: #34c759;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'DM Sans', inherit;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .btn-save:hover { background: #30d158; transform: scale(1.02); }
+    .btn-save:active { transform: scale(0.97); }
+
+    /* Error */
+    .error-state {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      background: #fff2f2;
+      border-radius: 12px;
+      font-size: 15px;
+      color: #d70015;
+      margin-top: 20px;
+    }
+
+    /* Loading */
+    .loading-state {
+      text-align: center;
+      padding: 24px 0 8px;
+      color: #86868b;
+      font-size: 15px;
+    }
+
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border: 2.5px solid #d2d2d7;
+      border-top-color: #0071e3;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Address list */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #1d1d1f;
+    }
+
+    .btn-refresh {
+      height: 32px;
+      padding: 0 14px;
+      background: #f5f5f7;
+      border: 1px solid #e0e0e5;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #0071e3;
+      font-family: 'DM Sans', inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-refresh:hover { background: #ebebf0; }
+
+    .address-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .address-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px;
+      background: #f9f9fb;
+      border-radius: 14px;
+      border: 1px solid #e8e8ed;
+      transition: background 0.15s;
+    }
+
+    .address-item:hover { background: #f0f0f5; }
+
+    .address-alias {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 3px;
+    }
+
+    .address-cep {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: #aeaeb2;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    .address-detail { font-size: 13px; color: #86868b; }
+
+    .address-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-size: 15px;
+    }
+
+    .btn-icon.edit:hover { background: #e8f4fd; }
+    .btn-icon.del:hover  { background: #fff0f0; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #aeaeb2;
+    }
+
+    .empty-icon { font-size: 36px; margin-bottom: 10px; display: block; }
+    .empty-text  { font-size: 15px; }
+
+    /* ============================================================
+       MODAL SYSTEM
+       ============================================================ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+      pointer-events: none;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 24px;
+      padding: 32px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+      transform: scale(0.92) translateY(10px);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s ease;
+      opacity: 0;
+    }
+
+    .modal-backdrop.active .modal {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .modal-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .modal-icon.success { background: #e8faf0; }
+    .modal-icon.danger  { background: #fff0f0; }
+    .modal-icon.prompt  { background: #e8f4fd; }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+    }
+
+    .modal-message {
+      font-size: 15px;
+      color: #86868b;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .modal-input {
+      width: 100%;
+      height: 50px;
+      border: 1.5px solid #d2d2d7;
+      border-radius: 14px;
+      padding: 0 16px;
+      font-size: 16px;
+      font-family: 'DM Sans', inherit;
+      color: #1d1d1f;
+      background: #f5f5f7;
+      outline: none;
+      transition: all 0.2s ease;
+      margin-bottom: 20px;
+    }
+
+    .modal-input:focus {
+      border-color: #0071e3;
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(0,113,227,0.12);
+    }
+
+    .modal-input::placeholder { color: #aeaeb2; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-actions.single { justify-content: center; }
+
+    .modal-btn {
+      flex: 1;
+      height: 48px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'DM Sans', inherit;
+      border: none;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      letter-spacing: -0.2px;
+    }
+
+    .modal-btn:hover  { transform: scale(1.02); }
+    .modal-btn:active { transform: scale(0.97); }
+
+    .modal-btn.cancel {
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+
+    .modal-btn.cancel:hover { background: #ebebf0; }
+
+    .modal-btn.confirm {
+      background: #0071e3;
+      color: #fff;
+    }
+
+    .modal-btn.confirm:hover { background: #0077ed; }
+
+    .modal-btn.danger {
+      background: #ff3b30;
+      color: #fff;
+    }
+
+    .modal-btn.danger:hover { background: #ff453a; }
+
+    .modal-btn.success {
+      background: #34c759;
+      color: #fff;
+    }
+
+    .modal-btn.success:hover { background: #30d158; }
+
+    /* Toast notification */
+    .toast-container {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+      backdrop-filter: blur(10px);
+      animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+                 toastOut 0.3s ease 2.4s forwards;
+      white-space: nowrap;
+    }
+
+    .toast.success { background: #1c1c1e; color: #fff; }
+    .toast.error   { background: #ff3b30; color: #fff; }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.92); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to   { opacity: 0; transform: translateY(8px) scale(0.95); }
+    }
+
+    @media (max-width: 480px) {
+      .app-wrapper { padding: 32px 16px 48px; }
+      .app-title   { font-size: 26px; }
+      .card        { padding: 20px; }
+      .btn-search  { padding: 0 16px; font-size: 14px; }
+      .modal       { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Modal backdrop (shared, reusable) -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modalBox">
+      <div class="modal-icon" id="modalIcon"></div>
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-message" id="modalMessage"></div>
+      <input class="modal-input" id="modalInput" type="text" style="display:none;" />
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="app-wrapper">
+
+    <!-- Header -->
+    <div class="app-header">
+      <div class="app-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+        </svg>
+      </div>
+      <h1 class="app-title">SmartCEP</h1>
+      <p class="app-subtitle">Wrapper resiliente com cache &middot; BrasilAPI &middot; ViaCEP</p>
+    </div>
+
+    <!-- Search card -->
+    <div class="card">
+      <div class="search-row">
+        <input id="cepInput"
+               class="cep-input"
+               type="text"
+               maxlength="9"
+               placeholder="00000-000" />
+        <button class="btn-search" onclick="buscarCEP()">Buscar</button>
+      </div>
+      <div id="resultado"></div>
+    </div>
+
+    <!-- Saved addresses card -->
+    <div class="card">
+      <div class="section-header">
+        <h2 class="section-title">Endereços Salvos</h2>
+        <button class="btn-refresh" onclick="carregarEnderecos()">Atualizar</button>
+      </div>
+      <div id="listaEnderecos" class="address-list"></div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ============================================================
+       MODAL ENGINE
+       ============================================================ */
+    let modalResolve = null;
+
+    function openModal({ icon, iconType = 'prompt', title, message, input = false, inputPlaceholder = '', inputValue = '', actions }) {
+      const backdrop  = document.getElementById('modalBackdrop');
+      const modalIcon = document.getElementById('modalIcon');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalMessage = document.getElementById('modalMessage');
+      const modalInput = document.getElementById('modalInput');
+      const modalActions = document.getElementById('modalActions');
+
+      modalIcon.textContent = icon;
+      modalIcon.className = `modal-icon ${iconType}`;
+      modalTitle.textContent = title;
+      modalMessage.textContent = message;
+
+      if (input) {
+        modalInput.style.display = 'block';
+        modalInput.placeholder = inputPlaceholder;
+        modalInput.value = inputValue;
+      } else {
+        modalInput.style.display = 'none';
+      }
+
+      modalActions.innerHTML = '';
+      actions.forEach(action => {
+        const btn = document.createElement('button');
+        btn.className = `modal-btn ${action.style || 'cancel'}`;
+        btn.textContent = action.label;
+        btn.onclick = () => {
+          closeModal();
+          if (modalResolve) {
+            modalResolve(action.value !== undefined ? action.value : (input ? modalInput.value.trim() : null));
+            modalResolve = null;
+          }
+        };
+        modalActions.appendChild(btn);
+      });
+
+      if (actions.length === 1) modalActions.classList.add('single');
+      else modalActions.classList.remove('single');
+
+      backdrop.classList.add('active');
+
+      if (input) {
+        setTimeout(() => modalInput.focus(), 200);
+        modalInput.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            const confirmBtn = modalActions.querySelector('.confirm');
+            if (confirmBtn) confirmBtn.click();
+          }
+          if (e.key === 'Escape') {
+            const cancelBtn = modalActions.querySelector('.cancel');
+            if (cancelBtn) cancelBtn.click();
+          }
+        };
+      }
+
+      backdrop.onclick = (e) => {
+        if (e.target === backdrop) {
+          const cancelBtn = modalActions.querySelector('.cancel');
+          if (cancelBtn) cancelBtn.click();
+        }
+      };
+
+      return new Promise(resolve => { modalResolve = resolve; });
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.remove('active');
+    }
+
+    /* Helpers */
+    function modalAlert({ icon = 'ℹ️', iconType = 'prompt', title, message }) {
+      return openModal({
+        icon, iconType, title, message,
+        actions: [{ label: 'OK', style: 'confirm', value: true }]
+      });
+    }
+
+    function modalConfirm({ icon = '⚠️', iconType = 'danger', title, message }) {
+      return openModal({
+        icon, iconType, title, message,
+        actions: [
+          { label: 'Cancelar', style: 'cancel',  value: false },
+          { label: 'Confirmar', style: 'danger',  value: true  }
+        ]
+      });
+    }
+
+    function modalPrompt({ icon = '✏️', iconType = 'prompt', title, message, placeholder = '', defaultValue = '' }) {
+      return openModal({
+        icon, iconType, title, message, input: true,
+        inputPlaceholder: placeholder,
+        inputValue: defaultValue,
+        actions: [
+          { label: 'Cancelar', style: 'cancel',  value: null },
+          { label: 'Salvar',   style: 'confirm', value: '__input__' }
+        ]
+      });
+    }
+
+    /* ============================================================
+       TOAST
+       ============================================================ */
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<span>${type === 'success' ? '✓' : '⚠'}</span> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 2800);
+    }
+
+    /* ============================================================
+       CEP INPUT MASK
+       ============================================================ */
+    document.getElementById('cepInput').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 5) value = value.slice(0, 5) + '-' + value.slice(5);
+      e.target.value = value;
+    });
+
+    document.getElementById('cepInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') buscarCEP();
+    });
+
+    /* ============================================================
+       BUSCAR CEP
+       ============================================================ */
+    async function buscarCEP() {
+      const cepInput = document.getElementById('cepInput').value.replace(/\D/g, '');
+      if (cepInput.length !== 8) {
+        await modalAlert({
+          icon: '⚠️',
+          iconType: 'danger',
+          title: 'CEP inválido',
+          message: 'Digite os 8 dígitos do CEP para continuar.'
+        });
+        return;
+      }
+
+      const resultadoDiv = document.getElementById('resultado');
+      resultadoDiv.style.display = 'block';
+      resultadoDiv.innerHTML = `
+        <div class="result-area" style="display:block;">
+          <div class="loading-state">
+            <div class="spinner"></div><br>Buscando endereço...
+          </div>
+        </div>`;
+
+      try {
+        const res = await fetch('/cep/' + cepInput);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Erro na busca');
+
+        let badgeClass = 'badge-brasil';
+        if (data.source === 'cache') badgeClass = 'badge-cache';
+        else if (data.source && data.source.toLowerCase().includes('viacep')) badgeClass = 'badge-viacep';
+
+        resultadoDiv.innerHTML = `
+          <div class="result-area" style="display:block;">
+            <span class="source-badge ${badgeClass}">${data.source.toUpperCase()}</span>
+            <div class="result-cep">${data.cep}</div>
+            <div class="result-street">${data.logradouro}${data.bairro ? ', ' + data.bairro : ''}</div>
+            <div class="result-city">${data.localidade} &mdash; ${data.uf}</div>
+            ${data.complemento ? `<div class="result-complement">${data.complemento}</div>` : ''}
+            <div class="result-footer">
+              <span class="latency-label">${data.latency || 0} ms</span>
+              <button class="btn-save" onclick="salvarEndereco('${data.cep}')">Salvar endereço</button>
+            </div>
+          </div>`;
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function showError(msg) {
+      const resultadoDiv = document.getElementById('resultado');
+      resultadoDiv.style.display = 'block';
+      resultadoDiv.innerHTML = `<div class="error-state"><span>⚠</span> ${msg}</div>`;
+    }
+
+    /* ============================================================
+       SALVAR ENDEREÇO
+       ============================================================ */
+    async function salvarEndereco(cep) {
+      const apelido = await modalPrompt({
+        icon: '📍',
+        iconType: 'prompt',
+        title: 'Salvar endereço',
+        message: 'Escolha um apelido para identificar este endereço facilmente.',
+        placeholder: 'Ex: Casa, Trabalho, Academia…'
+      });
+
+      if (!apelido || apelido.trim() === '') return;
+
+      const resultadoDiv = document.getElementById('resultado');
+      const streetEl  = resultadoDiv.querySelector('.result-street');
+      const cityEl    = resultadoDiv.querySelector('.result-city');
+
+      const logradouro = streetEl ? streetEl.textContent.split(',')[0] : '';
+      const cityText   = cityEl   ? cityEl.textContent : '';
+      const [localidade, uf] = cityText.split('—').map(s => s.trim());
+
+      try {
+        const res = await fetch('/addresses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cep,
+            apelido:    apelido.trim(),
+            logradouro: logradouro || '',
+            localidade: localidade || '',
+            uf:         uf || '',
+            bairro:     '',
+            complemento: ''
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast(`"${apelido}" salvo com sucesso!`);
+          carregarEnderecos();
+          document.getElementById('resultado').style.display = 'none';
+          document.getElementById('cepInput').value = '';
+        } else {
+          await modalAlert({
+            icon: '❌',
+            iconType: 'danger',
+            title: 'Erro ao salvar',
+            message: data.error || 'Não foi possível salvar o endereço. Tente novamente.'
+          });
+        }
+      } catch (err) {
+        await modalAlert({
+          icon: '❌',
+          iconType: 'danger',
+          title: 'Erro de conexão',
+          message: err.message
+        });
+      }
+    }
+
+    /* ============================================================
+       CARREGAR ENDEREÇOS
+       ============================================================ */
+    async function carregarEnderecos() {
+      const container = document.getElementById('listaEnderecos');
+      container.innerHTML = `<div class="loading-state"><div class="spinner"></div></div>`;
+
+      try {
+        const res = await fetch('/addresses');
+        const { data } = await res.json();
+
+        if (!data || data.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <span class="empty-icon">📍</span>
+              <p class="empty-text">Nenhum endereço salvo ainda.</p>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = data.map(end => `
+          <div class="address-item">
+            <div class="address-info">
+              <div class="address-alias">${end.apelido}</div>
+              <div class="address-cep">${end.cep}</div>
+              <div class="address-detail">${end.logradouro ? end.logradouro + ', ' : ''}${end.localidade || ''}${end.uf ? ' — ' + end.uf : ''}</div>
+            </div>
+            <div class="address-actions">
+              <button class="btn-icon edit" onclick="editarApelido(${end.id}, '${end.apelido.replace(/'/g, "\\'")}')">✏️</button>
+              <button class="btn-icon del"  onclick="deletarEndereco(${end.id}, '${end.apelido.replace(/'/g, "\\'")}')">🗑</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="error-state"><span>⚠</span> Erro ao carregar endereços.</div>`;
+      }
+    }
+
+    /* ============================================================
+       EDITAR APELIDO
+       ============================================================ */
+    async function editarApelido(id, apelidoAtual) {
+      const novoApelido = await modalPrompt({
+        icon: '✏️',
+        iconType: 'prompt',
+        title: 'Editar apelido',
+        message: 'Digite o novo nome para identificar este endereço.',
+        placeholder: 'Ex: Casa, Trabalho…',
+        defaultValue: apelidoAtual
+      });
+
+      if (!novoApelido || novoApelido.trim() === '') return;
+
+      try {
+        await fetch('/addresses/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apelido: novoApelido })
+        });
+        showToast('Apelido atualizado!');
+        carregarEnderecos();
+      } catch (err) {
+        await modalAlert({
+          icon: '❌',
+          iconType: 'danger',
+          title: 'Erro ao editar',
+          message: 'Não foi possível atualizar o apelido.'
+        });
+      }
+    }
+
+    /* ============================================================
+       DELETAR ENDEREÇO
+       ============================================================ */
+    async function deletarEndereco(id, apelido) {
+      const confirmed = await modalConfirm({
+        icon: '🗑️',
+        iconType: 'danger',
+        title: 'Excluir endereço',
+        message: `Tem certeza que deseja excluir "${apelido}"? Esta ação não pode ser desfeita.`
+      });
+
+      if (!confirmed) return;
+
+      try {
+        await fetch('/addresses/' + id, { method: 'DELETE' });
+        showToast('Endereço excluído.', 'success');
+        carregarEnderecos();
+      } catch (err) {
+        await modalAlert({
+          icon: '❌',
+          iconType: 'danger',
+          title: 'Erro ao excluir',
+          message: 'Não foi possível excluir o endereço.'
+        });
+      }
+    }
+
+    window.onload = carregarEnderecos;
+  </script>
+</body>
+</html>
