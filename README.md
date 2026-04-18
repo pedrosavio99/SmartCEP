@@ -150,7 +150,7 @@ A variável `FORCE_PRIMARY_FAIL=true` no `.env` simula uma falha da BrasilAPI em
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/seu-usuario/smartcep.git
+git clone https://github.com/pedrosavio99/SmartCEP
 cd smartcep
 
 # 2. Instale as dependências
