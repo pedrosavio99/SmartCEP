@@ -598,10 +598,11 @@
         const btn = document.createElement('button');
         btn.className = `modal-btn ${action.style || 'cancel'}`;
         btn.textContent = action.label;
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
           closeModal();
           if (modalResolve) {
-            // FIX: se action.value for undefined, lê o campo de texto (comportamento de prompt)
+            // se action.value for undefined, lê o campo de texto (comportamento de prompt)
             const resolved = action.value !== undefined
               ? action.value
               : (input ? modalInput.value.trim() : null);
@@ -632,7 +633,7 @@
       }
 
       backdrop.onclick = (e) => {
-        if (e.target === backdrop) {
+        if (e.target === backdrop && modalResolve) {
           const cancelBtn = modalActions.querySelector('.cancel');
           if (cancelBtn) cancelBtn.click();
         }
@@ -768,7 +769,9 @@
         placeholder: 'Ex: Casa, Trabalho, Academia…'
       });
 
-      if (!apelido || apelido.trim() === '') {
+      if (apelido === null) return;
+
+      if (apelido.trim() === '') {
         await modalAlert({
           icon: '⚠️',
           iconType: 'danger',
@@ -876,7 +879,9 @@
         defaultValue: apelidoAtual
       });
 
-      if (!novoApelido || novoApelido.trim() === '') {
+      if (novoApelido === null) return;
+
+      if (novoApelido.trim() === '') {
         await modalAlert({
           icon: '⚠️',
           iconType: 'danger',
