@@ -573,8 +573,8 @@
     let modalResolve = null;
 
     function openModal({ icon, iconType = 'prompt', title, message, input = false, inputPlaceholder = '', inputValue = '', actions }) {
-      const backdrop  = document.getElementById('modalBackdrop');
-      const modalIcon = document.getElementById('modalIcon');
+      const backdrop   = document.getElementById('modalBackdrop');
+      const modalIcon  = document.getElementById('modalIcon');
       const modalTitle = document.getElementById('modalTitle');
       const modalMessage = document.getElementById('modalMessage');
       const modalInput = document.getElementById('modalInput');
@@ -601,7 +601,11 @@
         btn.onclick = () => {
           closeModal();
           if (modalResolve) {
-            modalResolve(action.value !== undefined ? action.value : (input ? modalInput.value.trim() : null));
+            // FIX: se action.value for undefined, lê o campo de texto (comportamento de prompt)
+            const resolved = action.value !== undefined
+              ? action.value
+              : (input ? modalInput.value.trim() : null);
+            modalResolve(resolved);
             modalResolve = null;
           }
         };
@@ -653,8 +657,8 @@
       return openModal({
         icon, iconType, title, message,
         actions: [
-          { label: 'Cancelar', style: 'cancel',  value: false },
-          { label: 'Confirmar', style: 'danger',  value: true  }
+          { label: 'Cancelar', style: 'cancel', value: false },
+          { label: 'Confirmar', style: 'danger', value: true  }
         ]
       });
     }
@@ -665,8 +669,8 @@
         inputPlaceholder: placeholder,
         inputValue: defaultValue,
         actions: [
-          { label: 'Cancelar', style: 'cancel',  value: null },
-          { label: 'Salvar',   style: 'confirm', value: '__input__' }
+          { label: 'Cancelar', style: 'cancel', value: null },
+          { label: 'Salvar',   style: 'confirm' } // FIX: sem value → lê modalInput.value.trim()
         ]
       });
     }
@@ -764,7 +768,15 @@
         placeholder: 'Ex: Casa, Trabalho, Academia…'
       });
 
-      if (!apelido || apelido.trim() === '') return;
+      if (!apelido || apelido.trim() === '') {
+        await modalAlert({
+          icon: '⚠️',
+          iconType: 'danger',
+          title: 'Apelido obrigatório',
+          message: 'Digite um apelido para identificar o endereço antes de salvar.'
+        });
+        return;
+      }
 
       const resultadoDiv = document.getElementById('resultado');
       const streetEl  = resultadoDiv.querySelector('.result-street');
@@ -864,7 +876,15 @@
         defaultValue: apelidoAtual
       });
 
-      if (!novoApelido || novoApelido.trim() === '') return;
+      if (!novoApelido || novoApelido.trim() === '') {
+        await modalAlert({
+          icon: '⚠️',
+          iconType: 'danger',
+          title: 'Apelido obrigatório',
+          message: 'O apelido não pode ficar em branco.'
+        });
+        return;
+      }
 
       try {
         await fetch('/addresses/' + id, {
